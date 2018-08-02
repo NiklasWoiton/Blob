@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="js/require.js"></script>
+  <script type="text/javascript">
+
+    var myWebSocket;
+
+
+    function connectToWS() {
+	var protobufMessages = require('js/pb/messages_pb');
+
+	var endpoint = document.getElementById("endpoint").value;
+        if (myWebSocket !== undefined) {
+            myWebSocket.close()
+        }
+
+        myWebSocket = new WebSocket(endpoint);
+		myWebSocket.binaryType = 'arraybuffer';
+
+        myWebSocket.onmessage = function(message) {
+			const dataAsArray = new Uint8Array(message.data);
+			parseMessage(dataAsArray);
+			
+            var leng;
+            if (message.data.size === undefined) {
+                leng = message.data.length
+            } else {
+                leng = message.data.size
+            }
+            console.log("onmessage. size: " + leng + ", content: " + message.data);
+        }
+
+        myWebSocket.onopen = function(evt) {
+            console.log("onopen.");
+        };
+
+        myWebSocket.onclose = function(evt) {
+            console.log("onclose.");
+        };
+
+        myWebSocket.onerror = function(evt) {
+            console.log("Error!");
+        };
+    }
+
+    function sendMsg() {
+        var message = document.getElementById("myMessage").value;
+        myWebSocket.send(message);
+    }
+
+    function sendSpawnEnemy() {
+        var message = document.getElementById("myMessage").value;
+        myWebSocket.send(message);
+    }
+
+    function closeConn() {
+        myWebSocket.close();
+    }
+	
+	function parseMessage(bytes) {
+	}
+
+    </script>
+</head>
+<body>
+
+<div id="gpu">
+</div>
+
+<form>
+  <fieldset>
+    <legend>Number of Drones - Maximum</legend>
+
+    <label for="spawner_left">Spawnpoint Left</label>
+    <input type="range" list="tickmarks" id="spawner_left" name="spawner_left" min="0" max="10" />
+	<span id="spawner_left_value"></span>
+
+    <label for="spawner_right">Spawnpoint Right</label>
+    <input type="range" list="tickmarks" id="spawner_right" name="spawner_right" min="0" max="10" />
+	<span id="spawner_right_value"></span>
+	
+	<datalist id="tickmarks">
+      <option value="0">
+      <option value="1">
+      <option value="2">
+      <option value="3">
+      <option value="4">
+      <option value="5">
+      <option value="6">
+      <option value="7">
+      <option value="8">
+      <option value="9">
+      <option value="10">
+    </datalist>
+
+  </fieldset>
+
+  <fieldset>
+    <legend>Number of Drones - Current</legend>
+
+    <label for="spawner_left_children">Spawnpoint Left</label>
+    <span id="spawner_left_children">0</span>
+
+    <label for="spawner_right_children">Spawnpoint Right</label>
+    <span id="spawner_right_children">0</span>
+  </fieldset>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(event) {
+
+$.ajax({
+	//async:false,
+	url: '/api/SystemInfo/graphicsDeviceName',
+	dataType: 'text',
+	success: function(data) {
+	alert(data);
+		//$('gpu').append(data);
+	}
+});
+
+$.get( "/api/DroneSpawner/0/maxInstances", function( data ) {
+  $('#spawner_left').val( data );
+});
+$.get( "/api/DroneSpawner/1/maxInstances", function( data ) {
+  $('#spawner_right').val( data );
+});
+
+$(function() {
+  setTimeout(updateLabels, 1000);
+});
+function updateLabels () {
+  $.get( "/api/DroneSpawner/0/maxInstances", function( data ) {
+    $('#spawner_left_value').html( data );
+  });
+  $.get( "/api/DroneSpawner/1/maxInstances", function( data ) {
+    $('#spawner_right_value').html( data );
+  });
+  $.get( "/api/DroneSpawner/0/instances", function( data ) {
+    $('#spawner_left_children').html( data );
+  });
+  $.get( "/api/DroneSpawner/1/instances", function( data ) {
+    $('#spawner_right_children').html( data );
+  });
+
+  setTimeout(updateLabels, 1000);
+}
+
+
+$(document).on('input change', '#spawner_left', function() {
+    //$('#spawner_left_value').html( $(this).val() );
+
+	$.ajax({
+        url: '/api/DroneSpawner/0/maxInstances/' + $(this).val(),
+        type: 'PUT',
+        success: function(result) {
+            $('#spawner_left_value').val(result);
+        }
+    });
+});
+
+$(document).on('input change', '#spawner_right', function() {
+    //$('#spawner_right_value').html( $(this).val() );
+
+	$.ajax({
+        url: '/api/DroneSpawner/1/maxInstances/' + $(this).val(),
+        type: 'PUT',
+        success: function(result) {
+            $('#spawner_right_value').val(result);
+        }
+    });
+});
+
+});
+</script>
+
+    <form>
+        connection to: <input type="text" id="endpoint" name="endpoint" value="ws://localhost:5000"  style="width: 200px" ><br>
+    </form>
+
+    <input type="button" onclick="connectToWS()" value="connect to WebSocket endpoint" /><br><br>
+
+    <form>
+        message: <input type="text" id="myMessage" name="myMessage" value="hi there!"><br>
+    </form>
+
+    <input type="button" onclick="sendMsg()" value="Send message" />
+    <input type="button" onclick="sendSpawnEnemy()" value="Spawn Enemy" />
+
+    <input type="button" onclick="closeConn()" value="Close connection" />
+
+</body>
+</html>
