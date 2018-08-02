@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+enum EnemyType {
+  DRONE = 0;
+}
+
+enum SpawnArea {
+  LEFT = 0;
+  RIGHT = 1;
+}
+
+message SpawnEnemy {
+  EnemyType what = 1;
+  SpawnArea where = 2;
+}
+
+message ClientToServerMessageWrapper {
+  oneof message {
+    SpawnEnemy spawn_enemy = 1;
+  }
+}
